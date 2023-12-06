@@ -53,4 +53,14 @@ class CodeTool(BaseTool):
         
         self.manager.logger.debug(f"QA engineer result: {qa_result}")
 
+        # Now, create a new test file
+        file_creation_string = json.dumps([
+            {
+                "action": "create",
+                "path": f"/app/tests/test_{branch_name}.py",
+                "content": f"{qa_result}"
+            }
+        ])
+        self.manager.execute_tool("FileTool", input=file_creation_string)
+
         return "Not yet implemented"
