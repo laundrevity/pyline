@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "80:80"  # Adjust the ports as necessary
+    volumes:
+      - .:/app  # Mount the current directory to /app in the container
+    environment:
+      - NAME=World
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
