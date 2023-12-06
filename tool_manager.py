@@ -13,7 +13,7 @@ import re
 class ToolManager:
     def __init__(self, tools_package, model='gpt-4-1106-preview'):
         self.tools: Dict[str, BaseTool] = self.discover_tools(tools_package)
-        self.client = OpenAI()
+        self.client = None
         self.model = model
         
     @staticmethod
@@ -129,6 +129,10 @@ class ToolManager:
             tools=self.get_tools_json(),
             tool_choice='auto'
         )
+
+        if self.client is None:
+            self.client = OpenAI()
+
         completion_messages = response.choices[0].message
         messages.append(completion_messages)
         tool_call_responses = []
