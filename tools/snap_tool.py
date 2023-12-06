@@ -43,5 +43,9 @@ class SnapTool(BaseTool):
 
                     # Add file path footer
                     formatted_code += f'\n--- END {file_path} ---\n\n'
+        
+        # Write to state.txt
+        with open('state.txt', 'w') as f:
+            f.write(formatted_code)
 
         return formatted_code

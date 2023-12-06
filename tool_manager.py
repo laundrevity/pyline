@@ -1,39 +1,79 @@
 from tools.base_tool import BaseTool
-from tools.manager_exec_tool import ManagerExecTool
 from typing import Dict, List
 import inspect
 import pkgutil
 import importlib
-from docstring_parser import parse
 import traceback
 from openai import OpenAI
 from colorama import Fore
 import json
+import re
 
 
 class ToolManager:
     def __init__(self, tools_package, model='gpt-4-1106-preview'):
         self.tools: Dict[str, BaseTool] = self.discover_tools(tools_package)
-        self.tools['ManagerExecTool'] = ManagerExecTool(self)
         self.client = OpenAI()
         self.model = model
         
     @staticmethod
+    def parse_docstring(docstring):
+        """
+        Manual parsing of the docstring to extract short description and parameter descriptions.
+        """
+        lines = iter(docstring.strip().split('\n'))
+        short_description = next(lines, '').strip()
+        param_descriptions = {}
+        
+        # A regular expression pattern to match parameter declarations in the docstring
+        param_pattern = re.compile(r'^(\w+)\s+\((\w+)\)\s*:\s*(.*)')
+
+        current_param = None
+        current_description = []
+
+        for line in lines:
+            line_stripped = line.strip()
+            param_match = param_pattern.match(line_stripped)
+
+            if line_stripped.startswith('Args:'):
+                continue
+            elif param_match:
+                # Save previous argument's description
+                if current_param:
+                    param_descriptions[current_param] = ' '.join(current_description).strip()
+                # Start a new parameter description
+                current_param = param_match.group(1)
+                current_description = [param_match.group(3).strip()]
+            elif line_stripped and current_param:
+                # Continue current parameter description
+                current_description.append(line_stripped)
+            elif not line_stripped and current_param:
+                # Allow one blank line in the description but terminate on the next
+                current_description.append('')
+        
+        # Capture description of the last argument
+        if current_param:
+            param_descriptions[current_param] = ' '.join(current_description).strip()
+
+        return short_description, param_descriptions
+
+
+
+    @staticmethod
     def generate_json_for_tool(tool):
         """Generate JSON representation for the tool by introspecting the execute method."""
 
-        # Grab execute function details
         execute_function = tool.execute
         sig = inspect.signature(execute_function)
-        parsed_docstring = parse(inspect.getdoc(execute_function))
+        docstring = inspect.getdoc(execute_function)
+        short_description, param_descriptions = ToolManager.parse_docstring(docstring)
         parameters = sig.parameters
 
-        # Formulate the JSON for the tool
         json_definition = {
             "type": "function",
             "function": {
                 "name": tool.__name__,
-                "description": parsed_docstring.short_description,
+                "description": short_description,
                 "parameters": {
                     "type": "object",
                     "properties": {},
@@ -43,21 +83,13 @@ class ToolManager:
         }
 
         for param_name, param in parameters.items():
-            if param_name == 'self':  # Skip 'self' parameter
+            if param_name == 'self':  # Skip 'self'
                 continue
-            
-            # Extract the description of the parameter from the docstring
-            param_description = next(
-                (p.description for p in parsed_docstring.params if p.arg_name == param_name),
-                ""
-            )
-
+            param_description = param_descriptions.get(param_name, "")
             json_definition["function"]["parameters"]["properties"][param_name] = {
-                "type": "string",  # Placeholder, refine as needed for other data types
+                "type": "string",  # Assume string type for simplicity, adjust if needed
                 "description": param_description
             }
-
-            # Here we're adding parameters as required if they don't have a default value
             if param.default is inspect.Parameter.empty:
                 json_definition["function"]["parameters"]["required"].append(param_name)
 

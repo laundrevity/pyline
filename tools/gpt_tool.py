@@ -4,6 +4,11 @@ import json
 
 
 class GptTool(BaseTool):
+    def __init__(self, manager, model='gpt-4-1106-preview'):
+        super().__init__(manager)
+        self.model = model
+        self.client = OpenAI()
+
     def execute(self, input: str) -> str:
         """
         Communicate with OpenAI's GPT model using a JSON string representing messages.
@@ -15,11 +20,10 @@ class GptTool(BaseTool):
                 [
                     {
                         "role": "user", 
-                        "content": "What is AI?"
+                        "content": "What is 2+2?"
                     }
                 ]
         """
-        client = OpenAI()
 
         try:
             messages = json.loads(input) if isinstance(input, str) else input
@@ -29,8 +33,8 @@ class GptTool(BaseTool):
             raise ValueError(f"Invalid JSON input: {input}")
         
         print(f"{messages=}")
-        response = client.chat.completions.create(
+        response = self.client.chat.completions.create(
             messages=messages,
-            model='gpt-4-1106-preview'
+            model=self.model,
         )
         return response.choices[0].message.content
