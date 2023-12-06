@@ -7,7 +7,7 @@ class GptTool(BaseTool):
     def __init__(self, manager, model='gpt-4-1106-preview'):
         super().__init__(manager)
         self.model = model
-        self.client = OpenAI()
+        self.client = None
 
     def execute(self, input: str) -> str:
         """
@@ -24,7 +24,9 @@ class GptTool(BaseTool):
                     }
                 ]
         """
-
+        if self.client is None:
+            self.client = OpenAI()
+            
         try:
             messages = json.loads(input) if isinstance(input, str) else input
             if not isinstance(messages, list):

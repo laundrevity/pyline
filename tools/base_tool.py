@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 
 
 class BaseTool(ABC):
+    dependencies = []
+    
     def __init__(self, manager):
         self.manager = manager
     
