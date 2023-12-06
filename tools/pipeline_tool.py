@@ -4,6 +4,29 @@ import re
 
 
 class PipelineTool(BaseTool):
+    @staticmethod
+    def substitute_placeholders(params, outputs):
+        for key, value in params.items():
+            if isinstance(value, str):
+                # Substitute placeholders in strings
+                for output_key, output_value in outputs.items():
+                    placeholder = f"${{{output_key}}}"
+                    if placeholder in value:
+                        value = value.replace(placeholder, output_value)
+                params[key] = value
+            elif isinstance(value, dict):
+                # Recursively handle dictionaries
+                PipelineTool.substitute_placeholders(value, outputs)
+            elif isinstance(value, list):
+                # Handle lists: iterate through elements and substitute placeholders in strings
+                params[key] = [
+                    v.replace(f"${{{output_key}}}", outputs[output_key]) 
+                    if isinstance(v, str) else v 
+                    for v in value for output_key in outputs 
+                    if f"${{{output_key}}}" in str(v)
+                ]
+
+
     def execute(self, input: str) -> str:
         """
         Execute the given sequence of tool calls using a JSON string representing tool calls and arguments.
@@ -46,24 +69,10 @@ class PipelineTool(BaseTool):
             parameters = step.get("parameters")
             step_id = step.get("id")
 
-            # Resolve parameter references
-            resolved_params = {}
-            for param_name, param_value in parameters.items():
-                if isinstance(param_value, str):
-                    # Look for string substitutions within the parameter string
-                    def replace_match(match):
-                        ref_id = match.group(1)
-                        if ref_id in context:
-                            return str(context[ref_id]).strip()  # Added .strip() to remove any newline characters
-                        else:
-                            raise ValueError(f"Unresolved reference: {ref_id}")
-                    # Replace all occurrences of ${identifier} with the corresponding value from context
-                    resolved_params[param_name] = re.sub(r'\$\{(\w+)\}', replace_match, param_value)
-                else:
-                    resolved_params[param_name] = param_value
+            self.substitute_placeholders(parameters, context)
 
             # Execute the tool with resolved parameters
-            execution_result = self.manager.execute_tool(tool_name, **resolved_params)
+            execution_result = self.manager.execute_tool(tool_name, **parameters)
 
             # Store the result in context with identifier
             if step_id:

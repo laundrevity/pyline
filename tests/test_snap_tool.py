@@ -1,5 +1,4 @@
 import pytest
-from unittest.mock import mock_open, patch
 from tools.snap_tool import SnapTool
 import json
 
