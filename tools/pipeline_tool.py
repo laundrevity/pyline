@@ -37,17 +37,20 @@ class PipelineTool(BaseTool):
                 Example:
                 [
                     {
-                        "id": "generateText",
-                        "tool": "GptTool",
+                        "id": "helloResult",
+                        "tool": "ExecTool",
                         "parameters": {
-                            "input": [{"role": "user", "content": "create Python code for hello world, and ONLY return that Python code"}]
+                            "input": "print('hello world')"
                         }
                     },
                     {
-                        "id": "executeGeneratedCode",
-                        "tool": "ExecTool",
+                        "id": "echoResult",
+                        "tool": "ShellTool",
                         "parameters": {
-                            "input": "${generateText}"
+                            "input": {
+                                "command": "echo",
+                                "args": ["${helloResult}"]
+                            }
                         }
                     }
                 ]
