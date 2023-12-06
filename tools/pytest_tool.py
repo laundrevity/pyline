@@ -2,16 +2,15 @@ from tools.base_tool import BaseTool
 import json
 
 
-class TestTool(BaseTool):
-    dependences = ['ShellTool']
+class PytestTool(BaseTool):
+    dependencies = ['ShellTool']
 
-    def execute(self, input: str = "") -> str:
+    def execute(self, input: str) -> str:
         """
         Run tests using PyTest and return a string indicating the test results.
         
         Args:
-            input (str): JSON string with optional fields to specify which tests to run.
-                         An empty string or empty JSON object will run all tests.
+            input (str): JSON string with selected_tests field to specify which tests to run.
                          
         Example input:
         {
@@ -28,6 +27,7 @@ class TestTool(BaseTool):
         pytest_args = []
         selected_tests = params.get("selected_tests", [])
         if selected_tests:
+            pytest_args.append('-k')
             pytest_args.extend(selected_tests)
         
         # Run PyTest using the ShellTool and return its output

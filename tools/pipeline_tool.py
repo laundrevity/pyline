@@ -1,7 +1,5 @@
 from tools.base_tool import BaseTool
 import json
-import re
-
 
 class PipelineTool(BaseTool):
     @staticmethod
