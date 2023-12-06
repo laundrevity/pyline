@@ -14,6 +14,7 @@ import re
 class ToolManager:
     def __init__(self, tools_package, model='gpt-4-1106-preview'):
         self.logger = logging.getLogger(__name__)
+        self.logger.info('ToolManager initialized') # Added logging
         self.tools: Dict[str, BaseTool] = {}
         self.client = None
         self.model = model
@@ -154,7 +155,8 @@ class ToolManager:
     def get_response(self, messages: List[Dict[str, str]]) -> str:
         if self.client is None:
             self.client = OpenAI()
-            
+        
+        self.logger.debug(f"Creating ChatCompletion for messages: {messages}")
         response = self.client.chat.completions.create(
             model=self.model,
             messages=messages,

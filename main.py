@@ -1,6 +1,5 @@
 from colorama import Fore, Style, init
 from tool_manager import ToolManager
-from openai import OpenAI
 from pathlib import Path
 import importlib
 import datetime
@@ -33,9 +32,7 @@ def main():
     tools_package = importlib.import_module('tools')
     tm = ToolManager(tools_package)
 
-    client = OpenAI()
     prompt = args.prompt
-
     if prompt.lower() == 'debug':
         for tool_name, tool in tm.tools.items():
             print(f"{tool_name}: {tool}")

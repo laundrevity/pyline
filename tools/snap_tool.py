@@ -4,18 +4,24 @@ import os
 
 
 class SnapTool(BaseTool):
-    
+    @staticmethod
+    def add_line_numbers(code):
+        lines = code.split('\n')
+        numbered_lines = [f"{idx + 1: >4}: {line}" for idx, line in enumerate(lines)]
+        return '\n'.join(numbered_lines)
+
     def execute(self, input: str) -> str:
         """
         Return the formatted source code of the current project. If 'infra' field is True,
         include Dockerfile, docker-compose.yml, and requirements.txt, but exclude __pycache__ directories.
 
         Args:
-            input (str): JSON string with an 'infra' field to indicate infrastructure inclusion.
+            input (str): JSON string with an 'infra' field to indicate infrastructure inclusion, and optional 'line_numbers' field to include line numbers in source code output (defaults to True).
         """
         # Parse the JSON input
         params = json.loads(input)
         include_infra = params.get('infra', False)
+        line_numbers = params.get('line_numbers', True)
 
         # Initialize the formatted source code string
         formatted_code = ''
@@ -39,6 +45,8 @@ class SnapTool(BaseTool):
                     # Read the content of the file
                     with open(file_path, 'r') as f:
                         content = f.read()
+                        if line_numbers:
+                            content = self.add_line_numbers(content)
                         formatted_code += content
 
                     # Add file path footer
