@@ -21,8 +21,10 @@ def main():
     log_filename = Path("/app/logs/" + args.log_file)
     logging.basicConfig(
         level=log_level,
-        filename=log_filename,
-        filemode='w',
+        handlers=[
+            logging.FileHandler(log_filename),
+            logging.StreamHandler() # To output to console as well
+        ],
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)'
     )
     logging.info(f"Starting the ToolManager CLI...")

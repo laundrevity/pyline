@@ -34,7 +34,7 @@ class GptTool(BaseTool):
         except json.JSONDecodeError:
             raise ValueError(f"Invalid JSON input: {input}")
         
-        print(f"{messages=}")
+        self.manager.logger.debug(f"Creating GPT ChatCompletion with messages: {messages}")
         response = self.client.chat.completions.create(
             messages=messages,
             model=self.model,

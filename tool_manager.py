@@ -6,16 +6,43 @@ import importlib
 import traceback
 from openai import OpenAI
 from colorama import Fore
+import logging
 import json
 import re
 
 
 class ToolManager:
     def __init__(self, tools_package, model='gpt-4-1106-preview'):
-        self.tools: Dict[str, BaseTool] = self.discover_tools(tools_package)
+        self.logger = logging.getLogger(__name__)
+        self.tools: Dict[str, BaseTool] = {}
         self.client = None
         self.model = model
+        self.load_tools(tools_package)
+
+    # Split the discovery into two phases
+    def load_tools(self, tools_package):
+        atomic_tools, complex_tools = self.discover_tools(tools_package)
+
+        # Load atomic tools first
+        for name, tool_cls in atomic_tools.items():
+            self.tools[name] = tool_cls(self)
         
+        # Load complex tools that have (atomic) dependencies
+        for name, tool_cls in complex_tools.items():
+            if self.check_dependencies(tool_cls.dependencies):
+                self.tools[name] = tool_cls(self)
+            else:
+                missing = [dep for dep in tool_cls.dependencies if dep not in self.tools]
+                error_message = f"Failed to load tool '{name}': Missing dependencies {missing}"
+                # You can print, log or handle this error message as appropriate for your application
+                self.logger.error(error_message)
+        
+        self.logger.info(f"Loaded tools: {self.tools}")
+        
+    # Check if specified dependencies are satisfied
+    def check_dependencies(self, dependencies: List[str]) -> bool:
+        return all(dep in self.tools for dep in dependencies)
+
     @staticmethod
     def parse_docstring(docstring):
         """
@@ -56,8 +83,6 @@ class ToolManager:
             param_descriptions[current_param] = ' '.join(current_description).strip()
 
         return short_description, param_descriptions
-
-
 
     @staticmethod
     def generate_json_for_tool(tool):
@@ -100,8 +125,10 @@ class ToolManager:
             self.generate_json_for_tool(tool.__class__) for tool in self.tools.values()
         ]
 
+    # Separate discovery into atomic and complex tools
     def discover_tools(self, tools_package):
-        tools = {}
+        atomic_tools = {}
+        complex_tools = {}
         for finder, name, ispkg in pkgutil.iter_modules(
             tools_package.__path__,
             tools_package.__name__ + "."):
@@ -109,10 +136,12 @@ class ToolManager:
                 module = importlib.import_module(name)
                 for member_name, obj in inspect.getmembers(module):
                     if inspect.isclass(obj) and issubclass(obj, BaseTool) and member_name != 'BaseTool':
-                        # Capitalize the first letter to match the class name convention
-                        if 'Manager' not in obj.__name__:
-                            tools[obj.__name__] = obj(self)
-        return tools
+                        if not getattr(obj, 'dependencies', []):  # Atomic tool with no dependencies
+                            atomic_tools[member_name] = obj
+                        else:
+                            complex_tools[member_name] = obj
+
+        return atomic_tools, complex_tools
         
     def execute_tool(self, tool_name: str, **kwargs) -> str:
         try:
@@ -123,15 +152,15 @@ class ToolManager:
 
 
     def get_response(self, messages: List[Dict[str, str]]) -> str:
+        if self.client is None:
+            self.client = OpenAI()
+            
         response = self.client.chat.completions.create(
             model=self.model,
             messages=messages,
             tools=self.get_tools_json(),
             tool_choice='auto'
         )
-
-        if self.client is None:
-            self.client = OpenAI()
 
         completion_messages = response.choices[0].message
         messages.append(completion_messages)
