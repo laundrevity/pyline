@@ -45,18 +45,19 @@ class ShellTool(BaseTool):
                 # Run the command and handle output redirection
                 if redirect_out:
                     with open(redirect_out, 'w') as fp:
-                        subprocess.run([command] + args, stdout=fp, stderr=subprocess.PIPE, check=True)
+                        subprocess.run([command] + args, stdout=fp, stderr=subprocess.PIPE, check=False)
                     msg = f'REDIRECTED_TO_FILE: {redirect_out}\n' 
                 else:
                     # Execute command and capture stdout and stderr
-                    completed_process = subprocess.run([command] + args, text=True, capture_output=True, check=True)
+                    completed_process = subprocess.run([command] + args, text=True, capture_output=True, check=False)
                     msg = completed_process.stdout
                 
                 result_str += msg + '\n'
 
             except subprocess.CalledProcessError as e:
                 # Capture stderr from the exception if the command fails
-                result_str += e.stderr + '\n'
+                self.manager.logger.warning(f"CalledProcessError: {e}")
+                result_str += e.stderr + e.stdout + '\n'
             except Exception as e:
                 result_str += f"An unexpected error occurred: {e}\n"
 

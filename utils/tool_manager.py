@@ -6,13 +6,15 @@ import importlib
 import traceback
 from openai import OpenAI
 from colorama import Fore
+import importlib
 import logging
 import json
 import re
 
 
 class ToolManager:
-    def __init__(self, tools_package, model='gpt-4-1106-preview'):
+    def __init__(self, package='tools', model='gpt-4-1106-preview'):
+        tools_package = importlib.import_module(package)
         self.logger = logging.getLogger(__name__)
         self.logger.info('ToolManager initialized') # Added logging
         self.tools: Dict[str, BaseTool] = {}

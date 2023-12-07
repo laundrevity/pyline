@@ -4,4 +4,4 @@ import tools
 
 @pytest.fixture(scope='module')
 def tool_manager():
-    return ToolManager(tools_package=tools)
+    return ToolManager()

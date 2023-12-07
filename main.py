@@ -1,7 +1,6 @@
 from utils.tool_manager import ToolManager
 from colorama import Fore, Style, init
 from pathlib import Path
-import importlib
 import datetime
 import argparse
 import logging
@@ -29,8 +28,7 @@ def main():
     logging.info(f"Starting the ToolManager CLI...")
 
     init(autoreset=True)
-    tools_package = importlib.import_module('tools')
-    tm = ToolManager(tools_package)
+    tm = ToolManager()
 
     prompt = args.prompt
     if prompt.lower() == 'debug':

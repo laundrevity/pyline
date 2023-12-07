@@ -12,6 +12,11 @@ class CodeToolState(Enum):
 class CodeTool(BaseTool):
     dependencies = ['GptTool', 'ShellTool', 'FileTool', 'SnapTool']
 
+    # def tests_pass(self) -> bool:
+    #     result = self.manager.execute_tool('ShellTool', input='{"command": "pytest", "args": []}')
+    #     last_line = result.split('\n')[-1]
+    #     return 'failed' not in last_line
+
     def execute(self, input: str) -> str:
         """
         Use GptTool, ShellTool, and FileTool to orchestrate and incorporate suggested modifications to the code.
@@ -62,5 +67,28 @@ class CodeTool(BaseTool):
             }
         ])
         self.manager.execute_tool("FileTool", input=file_creation_string)
+
+        # Try to see if the tests pass, in which case we are more or less done
+        tests_pass = False
+        while not tests_pass:
+            test_result = self.manager.execute_tool('ShellTool', input='{"command": "pytest", "args": []}')
+            last_line = test_result.split('\n')[-1]
+            if 'failed' not in last_line:
+                tests_pass = True
+            else:
+                # If the tests fail, then try to get a FileTool JSON call from GPT to apply
+                # Generate a fresh snap including the possibly new tests or modifications
+                self.manager.execute_tool("SnapTool", input=json.dumps({'infra': False, 'line_numbers': False}))
+
+                system_prompt = (
+                    f"You are a backend developer. You want to make the tests pass."
+                    f"Your ONLY goal is to modify the code until the tests pass -- you are NOT allowed to just modify the tests so that they pass."
+                    f"Here is the current project source code:\n\n{open('state.txt').read()}\n\n"
+                )
+                user_prompt = f"Current failing test output: {test_result}"
+
+                # What to do now? Ideally we want GPT to suggest a function call (e.g. FileTool) that would fix the test
+                # but GptTool doesn't currently allow for tools JSON, and it seems unwieldy to explicite create a ChatCompletion here
+                return f"failing tests: {test_result}"
 
         return "Not yet implemented"
