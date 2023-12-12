@@ -34,7 +34,7 @@ class SnapTool(BaseTool):
         # Traverse the project directory
         for root, dirs, files in os.walk('.'):
             # Skipping __pycache__ directories
-            dirs[:] = [d for d in dirs if d != '__pycache__']
+            dirs[:] = [d for d in dirs if d != '__pycache__' and d != 'venv']
             
             for file in files:
                 if any(file.endswith(ext) for ext in all_files):

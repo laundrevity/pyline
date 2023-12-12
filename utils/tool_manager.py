@@ -198,7 +198,7 @@ class ToolManager:
                 tool_response = {
                     "tool_call_id": tool_call.id,
                     "role": "tool",
-                    "name": "tool_name",
+                    "name": tool_name,
                     "content": json.dumps(result) if isinstance(result, dict) else result
                 }
                 tool_call_responses.append(tool_response)

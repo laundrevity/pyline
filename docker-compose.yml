@@ -4,7 +4,7 @@ services:
   app:
     build: .
     ports:
-      - "80:80"  # Adjust the ports as necessary
+      - "81:81"  # Adjust the ports as necessary
     volumes:
       - .:/app  # Mount the current directory to /app in the container
     environment:
